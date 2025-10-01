@@ -1,0 +1,19 @@
+[package]
+name = "Matrix_calculator"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+slint = "1.12.1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2" }
+getrandom = { version = "0.2.2", features = ["js"] }
+
+[build-dependencies]
+slint-build = "1.12.1"
+
+#[lib]
+#path = "src/main.rs"
+#crate-type = ["cdylib"]
