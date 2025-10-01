@@ -6,6 +6,7 @@ export component AppWindow inherits Window {
     width: 600px;
     height: 400px;
     title: "Matrix Calulator";
+    property <bool> matrix_lock <=> lock.checked;
     out property <int> X: 4;
     out property <int> Y: 3;
     property <[string]> subscript: ["\u{2080}", "\u{2081}", "\u{2082}", "\u{2083}", "\u{2084}", "\u{2085}", "\u{2086}", "\u{2087}", "\u{2088}", "\u{2089}"];
@@ -58,8 +59,11 @@ export component AppWindow inherits Window {
                             width: 125px;
                         }
                         Rectangle {height: 8px;}
-                        Switch {
+                        lock := Switch {
                             text: "Matrix Lock";
+                            toggled => {
+                                reinitialize();
+                            }
                         }
                         Button {
                             text: "print";
@@ -78,12 +82,11 @@ export component AppWindow inherits Window {
                                 for col in X: Rectangle {
                                     LineEdit {
                                         input-type: number;
-                                        read-only: false;
+                                        read-only: matrix_lock;
                                         placeholder-text: 0;
                                         min-width: self.text.character-count * 8px + 30px;
                                         edited(text) => {
                                             matrix[row][col] = text.to-float();
-                                            debug("pos: (" + col + ", " + row + ") changed to: ", text)
                                         }
                                     }
                                 }
@@ -94,12 +97,13 @@ export component AppWindow inherits Window {
             }
             Rectangle {
                 height: 200px;
+                visible: matrix_lock;
                 TabWidget {
                     Tab {
                         title: "Calculator";
                         HorizontalLayout {
                             Rectangle {
-                                width: parent.width * 3 / 8;
+                                width: parent.width * 3 / 12;
                                 ListView {
                                     for i in steplist.length -1: Rectangle {
                                         border-color: black;
@@ -112,20 +116,19 @@ export component AppWindow inherits Window {
                                 }
                             }
                             Rectangle {
-                                width: parent.width / 8;
+                                width: parent.width / 12;
                             }
                             VerticalLayout {
                                 padding-top: 40px;
                                 padding-bottom: 20px;
                                 property <string> current-operation: "";
                                 property <string> Operation: "switch 2 rows";
-                                width: parent.width / 2;
+                                width: parent.width * 2 / 3;
                                 spacing: 5px;
                                 Rectangle {
                                     if Operation == "switch 2 rows": HorizontalLayout {
                                         property <[int]> field: [1, 1];
-                                        padding-left: 20px;
-                                        padding-right: 20px;
+                                        alignment: center;
                                         Text {
                                             text: "R";
                                             font-size: 20px;
@@ -155,7 +158,6 @@ export component AppWindow inherits Window {
                                             edited(num) => {
                                                 field[1] = num;
                                                 current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
-                                                debug("field1 = " + field[1]);
                                             }
                                             width: 90px;
                                             minimum: 1;
@@ -164,8 +166,7 @@ export component AppWindow inherits Window {
                                     }
                                     if Operation == "multiply a row by a scalar": HorizontalLayout {
                                         property <[int]> field: [1, 1];
-                                        padding-left: 75px;
-                                        padding-right: 20px;
+                                        alignment: center;
                                         SpinBox {
                                             height: 30px;
                                             value: 1;
@@ -189,12 +190,15 @@ export component AppWindow inherits Window {
                                             width: 90px;
                                             minimum: 1;
                                             maximum: Y;
+                                        }
+                                        Text {
+                                            text: " \u{27f6} R" + subscript[field[1]];
+                                            font-size: 20px;
                                         }
                                     }
                                     if Operation == "add a multiple of one to another": HorizontalLayout {
-                                        property <[int]> field: [1, 1];
-                                        padding-left: 20px;
-                                        padding-right: 20px;
+                                        property <[int]> field: [1, 1, 1];
+                                        alignment: center;
                                         Text {
                                             text: "R";
                                             font-size: 20px;
@@ -204,15 +208,24 @@ export component AppWindow inherits Window {
                                             value: 1;
                                             edited(num) => {
                                                 field[0] = num;
-                                                current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
+                                                current-operation = "R" + subscript[field[0]] + " + " + field[1] + "R" + subscript[field[2]] + " \u{27f6} R" + subscript[field[0]];
                                             }
                                             width: 90px;
                                             minimum: 1;
                                             maximum: Y;
                                         }
                                         Text {
-                                            text: " \u{27f7}";
+                                            text: " + ";
                                             font-size: 20px;
+                                        }
+                                        SpinBox {
+                                            height: 30px;
+                                            value: 1;
+                                            edited(num) => {
+                                                field[1] = num;
+                                                current-operation = "R" + subscript[field[0]] + " + " + field[1] + "R" + subscript[field[2]] + " \u{27f6} R" + subscript[field[0]];
+                                            }
+                                            width: 90px;
                                         }
                                         Text {
                                             text: "R";
@@ -222,13 +235,16 @@ export component AppWindow inherits Window {
                                             height: 30px;
                                             value: 1;
                                             edited(num) => {
-                                                field[1] = num;
-                                                current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
-                                                debug("field1 = " + field[1]);
+                                                field[2] = num;
+                                                current-operation = "R" + subscript[field[0]] + " + " + field[1] + "R" + subscript[field[2]] + " \u{27f6} R" + subscript[field[0]];
                                             }
                                             width: 90px;
                                             minimum: 1;
                                             maximum: Y;
+                                        }
+                                        Text {
+                                            text: " \u{27f6} R" + subscript[field[0]];
+                                            font-size: 20px;
                                         }
                                     }
                                 }
@@ -243,7 +259,7 @@ export component AppWindow inherits Window {
                                     }
                                 }
                                 HorizontalLayout {
-                                    padding-left: 25px;
+                                    alignment: center;
                                     Button {
                                         text: "Add Operation";
                                         width: 120px;

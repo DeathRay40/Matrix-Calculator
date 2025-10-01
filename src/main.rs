@@ -61,6 +61,7 @@ pub fn main() -> Result<(), slint::PlatformError> {
             x.as_any().downcast_ref::<VecModel<i32>>().unwrap().iter().for_each(|v| print!("{v}, "));
             println!();
         });
+        println!();
     });
 
     app.run()
