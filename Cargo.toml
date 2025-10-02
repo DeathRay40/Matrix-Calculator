@@ -5,6 +5,7 @@ edition = "2021"
 
 
 [dependencies]
+num = "0.4.3"
 slint = "1.12.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -14,6 +15,6 @@ getrandom = { version = "0.2.2", features = ["js"] }
 [build-dependencies]
 slint-build = "1.12.1"
 
-#[lib]
-#path = "src/main.rs"
-#crate-type = ["cdylib"]
+[lib]
+path = "src/main.rs"
+crate-type = ["cdylib"]

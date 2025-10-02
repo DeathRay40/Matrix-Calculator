@@ -1,21 +1,23 @@
-import { ComboBox, LineEdit, GridBox, GroupBox, VerticalBox, ListView, TabWidget, SpinBox, Switch, Button, ScrollView } from "std-widgets.slint";
+import { ComboBox, LineEdit, GridBox, GroupBox, VerticalBox, ListView, TabWidget, SpinBox, Switch, Button, ScrollView, StandardTableView } from "std-widgets.slint";
 
 
 
 export component AppWindow inherits Window {
-    width: 600px;
-    height: 400px;
+    width: 800px;
+    height: 600px;
     title: "Matrix Calulator";
-    property <bool> matrix_lock <=> lock.checked;
-    out property <int> X: 4;
-    out property <int> Y: 3;
-    property <[string]> subscript: ["\u{2080}", "\u{2081}", "\u{2082}", "\u{2083}", "\u{2084}", "\u{2085}", "\u{2086}", "\u{2087}", "\u{2088}", "\u{2089}"];
-    in-out property <[[int]]> matrix: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
+    in-out property <bool> matrix_lock <=> lock.checked;
+    out property <int> X <=> widthchanger.value;
+    out property <int> Y <=> heightchanger.value;
+    property <[string]> subscript: ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"];
+    in-out property <[[int]]> matrix: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
     in-out property <[string]> steplist: ["0"];
+    in property <[[[string]]]> solutions: [[["0"]]];
     callback reinitialize();
     callback steplist_add(string);
     callback steplist_empty();
-    callback print_matrix();
+    callback calculate_steps();
+    callback reset_solutions();
     ScrollView {
         VerticalLayout {
             width: parent.width;
@@ -36,11 +38,11 @@ export component AppWindow inherits Window {
                             text: "Vertical";
                             height: 17px;
                         }
-                        SpinBox {
+                        heightchanger := SpinBox {
+                            enabled: !matrix_lock;
                             height: 30px;
-                            value: Y;
-                            edited(num) => {
-                                Y = num;
+                            value: 3;
+                            edited() => {
                                 root.reinitialize();
                             }
                             width: 125px;
@@ -49,11 +51,11 @@ export component AppWindow inherits Window {
                             text: "Horizontal";
                             height: 17px;
                         }
-                        SpinBox {
+                        widthchanger := SpinBox {
+                            enabled: !matrix_lock;
                             height: 30px;
-                            value: X;
-                            edited(num) => {
-                                X = num;
+                            value: 4;
+                            edited() => {
                                 root.reinitialize();
                             }
                             width: 125px;
@@ -62,14 +64,9 @@ export component AppWindow inherits Window {
                         lock := Switch {
                             text: "Matrix Lock";
                             toggled => {
-                                reinitialize();
+                                reset_solutions();
                             }
-                        }
-                        Button {
-                            text: "print";
-                            clicked => {
-                                root.print_matrix();
-                            }
+                            enabled: true;
                         }
                     }
                 }
@@ -81,7 +78,7 @@ export component AppWindow inherits Window {
                             HorizontalLayout {
                                 for col in X: Rectangle {
                                     LineEdit {
-                                        input-type: number;
+                                        enabled: !matrix_lock;
                                         read-only: matrix_lock;
                                         placeholder-text: 0;
                                         min-width: self.text.character-count * 8px + 30px;
@@ -96,188 +93,221 @@ export component AppWindow inherits Window {
                 }
             }
             Rectangle {
-                height: 200px;
                 visible: matrix_lock;
                 TabWidget {
                     Tab {
                         title: "Calculator";
-                        HorizontalLayout {
-                            Rectangle {
-                                width: parent.width * 3 / 12;
-                                ListView {
-                                    for i in steplist.length -1: Rectangle {
-                                        border-color: black;
-                                        border-width: 2px;
-                                        height: 20px;
-                                        Text {
-                                            text: steplist[i + 1];
+                        VerticalLayout {
+                            HorizontalLayout {
+                                height: 200px;
+                                Rectangle {
+                                    width: parent.width * 3 / 12;
+                                    ListView {
+                                        for i in steplist.length -1: Rectangle {
+                                            border-color: black;
+                                            border-width: 2px;
+                                            height: 20px;
+                                            Text {
+                                                text: steplist[i + 1];
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            Rectangle {
-                                width: parent.width / 12;
+                                Rectangle {
+                                    width: parent.width / 12;
+                                }
+                                VerticalLayout {
+                                    padding-top: 40px;
+                                    padding-bottom: 20px;
+                                    property <string> current-operation: "R" + subscript[1] + " \u{27f7} R" + subscript[1];
+                                    property <string> Operation: "switch 2 rows";
+                                    width: parent.width * 2 / 3;
+                                    spacing: 5px;
+                                    Rectangle {
+                                        if Operation == "switch 2 rows": HorizontalLayout {
+                                            property <[int]> field: [1, 1];
+                                            alignment: center;
+                                            Text {
+                                                text: "R";
+                                                font-size: 20px;
+                                            }
+                                            SpinBox {
+                                                height: 30px;
+                                                value: 1;
+                                                edited(num) => {
+                                                    field[0] = num;
+                                                    current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
+                                                }
+                                                width: 90px;
+                                                minimum: 1;
+                                                maximum: Y;
+                                            }
+                                            Text {
+                                                text: " \u{27f7}";
+                                                font-size: 20px;
+                                            }
+                                            Text {
+                                                text: "R";
+                                                font-size: 20px;
+                                            }
+                                            SpinBox {
+                                                height: 30px;
+                                                value: 1;
+                                                edited(num) => {
+                                                    field[1] = num;
+                                                    current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
+                                                }
+                                                width: 90px;
+                                                minimum: 1;
+                                                maximum: Y;
+                                            }
+                                        }
+                                        if Operation == "multiply a row by a scalar": HorizontalLayout {
+                                            property <int> row_num: 1;
+                                            property <string> scalar: "1";
+                                            alignment: center;
+                                            LineEdit {
+                                                height: 30px;
+                                                edited(num) => {
+                                                    scalar = num;
+                                                    current-operation = scalar + "R" + subscript[row_num] + " \u{27f6} R"+ subscript[row_num];
+                                                }
+                                                width: 90px;
+                                            }
+                                            Text {
+                                                text: "R";
+                                                font-size: 20px;
+                                            }
+                                            SpinBox {
+                                                height: 30px;
+                                                value: 1;
+                                                edited(num) => {
+                                                    row_num = num;
+                                                    current-operation = scalar + "R" + subscript[row_num] + " \u{27f6} R"+ subscript[row_num];
+                                                }
+                                                width: 90px;
+                                                minimum: 1;
+                                                maximum: Y;
+                                            }
+                                            Text {
+                                                text: " \u{27f6} R" + subscript[row_num];
+                                                font-size: 20px;
+                                            }
+                                        }
+                                        if Operation == "add a multiple of one to another": HorizontalLayout {
+                                            property <[int]> field: [1, 1];
+                                            property <string> scalar;
+                                            alignment: center;
+                                            Text {
+                                                text: "R";
+                                                font-size: 20px;
+                                            }
+                                            SpinBox {
+                                                height: 30px;
+                                                value: 1;
+                                                edited(num) => {
+                                                    field[0] = num;
+                                                    current-operation = "R" + subscript[field[0]] + " + " + scalar + "R" + subscript[field[1]] + " \u{27f6} R" + subscript[field[0]];
+                                                }
+                                                width: 90px;
+                                                minimum: 1;
+                                                maximum: Y;
+                                            }
+                                            Text {
+                                                text: " + ";
+                                                font-size: 20px;
+                                            }
+                                            LineEdit {
+                                                height: 30px;
+                                                edited(num) => {
+                                                    scalar = num;
+                                                    current-operation = "R" + subscript[field[0]] + " + " + scalar + "R" + subscript[field[1]] + " \u{27f6} R" + subscript[field[0]];
+                                                }
+                                                width: 90px;
+                                            }
+                                            Text {
+                                                text: "R";
+                                                font-size: 20px;
+                                            }
+                                            SpinBox {
+                                                height: 30px;
+                                                value: 1;
+                                                edited(num) => {
+                                                    field[1] = num;
+                                                    current-operation = "R" + subscript[field[0]] + " + " + scalar + "R" + subscript[field[1]] + " \u{27f6} R" + subscript[field[0]];
+                                                }
+                                                width: 90px;
+                                                minimum: 1;
+                                                maximum: Y;
+                                            }
+                                            Text {
+                                                text: " \u{27f6} R" + subscript[field[0]];
+                                                font-size: 20px;
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        ComboBox {
+                                            width: 250px;
+                                            model: ["switch 2 rows", "multiply a row by a scalar", "add a multiple of one to another"];
+                                            selected(current-value) => {
+                                                Operation = current-value;
+                                                if (self.current-index == 0) {
+                                                    current-operation = "R" + subscript[1] + " \u{27f7} R" + subscript[1];
+                                                } else if (self.current-index == 1) {
+                                                    current-operation = "1R" + subscript[1] + " \u{27f6} R"+ subscript[1];
+                                                } else {
+                                                    current-operation = "R" + subscript[1] + " + 1R" + subscript[1] + " \u{27f6} R" + subscript[1];
+                                                }
+                                            }
+                                        }
+                                    }
+                                    HorizontalLayout {
+                                        alignment: center;
+                                        Button {
+                                            text: "Add Operation";
+                                            width: 120px;
+                                            height: 25px;
+                                            clicked => {
+                                                root.steplist_add(current-operation);
+                                                root.calculate_steps();
+                                            }
+                                        }
+                                        Button {
+                                            text: "Clear Operations";
+                                            width: 120px;
+                                            height: 25px;
+                                            clicked => {
+                                                root.steplist_empty();
+                                                root.reset_solutions();
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             VerticalLayout {
-                                padding-top: 40px;
-                                padding-bottom: 20px;
-                                property <string> current-operation: "";
-                                property <string> Operation: "switch 2 rows";
-                                width: parent.width * 2 / 3;
-                                spacing: 5px;
-                                Rectangle {
-                                    if Operation == "switch 2 rows": HorizontalLayout {
-                                        property <[int]> field: [1, 1];
-                                        alignment: center;
-                                        Text {
-                                            text: "R";
-                                            font-size: 20px;
-                                        }
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[0] = num;
-                                                current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
+                                width: X * 20px;
+                                spacing: 20px;
+                                for x in solutions: Rectangle {
+                                    VerticalLayout {
+                                        width: self.height;
+                                        spacing: -2px;
+                                        for y in x: HorizontalLayout {
+                                            for z in y: Rectangle {
+                                                border-width: 2px;
+                                                border-color: black;
+                                                width: 80px;
+                                                height: 20px;
+                                                Text {
+                                                    text: z;
+                                                    font-size: 15px;
+                                                }
                                             }
-                                            width: 90px;
-                                            minimum: 1;
-                                            maximum: Y;
-                                        }
-                                        Text {
-                                            text: " \u{27f7}";
-                                            font-size: 20px;
-                                        }
-                                        Text {
-                                            text: "R";
-                                            font-size: 20px;
-                                        }
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[1] = num;
-                                                current-operation = "R" + subscript[field[0]] + " \u{27f7} R" + subscript[field[1]];
-                                            }
-                                            width: 90px;
-                                            minimum: 1;
-                                            maximum: Y;
-                                        }
-                                    }
-                                    if Operation == "multiply a row by a scalar": HorizontalLayout {
-                                        property <[int]> field: [1, 1];
-                                        alignment: center;
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[0] = num;
-                                                current-operation = field[0] + "R" + subscript[field[1]] + " \u{27f6} R"+ subscript[field[1]];
-                                            }
-                                            width: 90px;
-                                        }
-                                        Text {
-                                            text: "R";
-                                            font-size: 20px;
-                                        }
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[1] = num;
-                                                current-operation = field[0] + "R" + subscript[field[1]] + " \u{27f6} R"+ subscript[field[1]];
-                                            }
-                                            width: 90px;
-                                            minimum: 1;
-                                            maximum: Y;
-                                        }
-                                        Text {
-                                            text: " \u{27f6} R" + subscript[field[1]];
-                                            font-size: 20px;
-                                        }
-                                    }
-                                    if Operation == "add a multiple of one to another": HorizontalLayout {
-                                        property <[int]> field: [1, 1, 1];
-                                        alignment: center;
-                                        Text {
-                                            text: "R";
-                                            font-size: 20px;
-                                        }
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[0] = num;
-                                                current-operation = "R" + subscript[field[0]] + " + " + field[1] + "R" + subscript[field[2]] + " \u{27f6} R" + subscript[field[0]];
-                                            }
-                                            width: 90px;
-                                            minimum: 1;
-                                            maximum: Y;
-                                        }
-                                        Text {
-                                            text: " + ";
-                                            font-size: 20px;
-                                        }
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[1] = num;
-                                                current-operation = "R" + subscript[field[0]] + " + " + field[1] + "R" + subscript[field[2]] + " \u{27f6} R" + subscript[field[0]];
-                                            }
-                                            width: 90px;
-                                        }
-                                        Text {
-                                            text: "R";
-                                            font-size: 20px;
-                                        }
-                                        SpinBox {
-                                            height: 30px;
-                                            value: 1;
-                                            edited(num) => {
-                                                field[2] = num;
-                                                current-operation = "R" + subscript[field[0]] + " + " + field[1] + "R" + subscript[field[2]] + " \u{27f6} R" + subscript[field[0]];
-                                            }
-                                            width: 90px;
-                                            minimum: 1;
-                                            maximum: Y;
-                                        }
-                                        Text {
-                                            text: " \u{27f6} R" + subscript[field[0]];
-                                            font-size: 20px;
-                                        }
-                                    }
-                                }
-                                Rectangle {
-                                    ComboBox {
-                                        width: 250px;
-                                        model: ["switch 2 rows", "multiply a row by a scalar", "add a multiple of one to another"];
-                                        selected(current-value) => {
-                                            Operation = current-value;
-                                            current-operation = ""
-                                        }
-                                    }
-                                }
-                                HorizontalLayout {
-                                    alignment: center;
-                                    Button {
-                                        text: "Add Operation";
-                                        width: 120px;
-                                        height: 25px;
-                                        clicked => {
-                                            root.steplist_add(current-operation);
-                                        }
-                                    }
-                                    Button {
-                                        text: "Clear Operations";
-                                        width: 120px;
-                                        height: 25px;
-                                        clicked => {
-                                            root.steplist_empty();
                                         }
                                     }
                                 }
                             }
+
                         }
                     }
                     Tab {
