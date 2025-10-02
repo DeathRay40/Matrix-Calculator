@@ -1,0 +1,15 @@
+{
+  "name": "Matrix_calculator",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "Matrix_calculator_bg.wasm",
+    "Matrix_calculator.js",
+    "Matrix_calculator.d.ts"
+  ],
+  "main": "Matrix_calculator.js",
+  "types": "Matrix_calculator.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
